@@ -34,7 +34,7 @@ async function main() {
         }
 
         // Create a new video element to be inserted
-        const videoURL = 'https://rawcdn.githack.com/BlafKing/catjam/597d0766c4602c28c4eabdab0ff1ccbc113e19f0/poez.webm';
+        const videoURL = 'https://github.com/BlafKing/spicetify-cat-jam-synced/raw/main/src/resources/catjam.webm';
         const videoElement = document.createElement('video');
         videoElement.setAttribute('loop', 'true'); // Video loops continuously
         videoElement.setAttribute('autoplay', 'true'); // Video starts automatically
@@ -78,10 +78,11 @@ async function main() {
         }
     }
     
-    // Function that fetches audio data from "wg://audio-attributes/v1/audio-analysis/ with retry handling"
+    // Function that fetches audio data from "wg://audio-attributes/v1/audio-analysis/" with retry handling
     async function fetchAudioData(retryDelay = 200, maxRetries = 10) {
         try {
-            audioData = await Spicetify.getAudioData()
+            audioData = await Spicetify.getAudioData();
+            console.log(audioData);
             return audioData;
         } catch (error) {
             if (typeof error === "object" && error !== null && 'message' in error) {

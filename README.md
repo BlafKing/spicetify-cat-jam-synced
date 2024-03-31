@@ -1,16 +1,8 @@
-# Spicetify Creator
+# Cat Jam Synced
 
-Spicetify Creator is a tool to compile modern Typescript/Javascript code to Spicetify extensions and custom apps.
+![preview](marketplace/preview.gif)
 
-## Features
-- Typescript and React syntax
-- Import node packages
-- CSS/SCSS with PostCSS support
-- Extremely fast compile time with esbuild.
-- Plugins
-
-## Docs
-Check out [Spicetify's docs](https://spicetify.app/docs/development/spicetify-creator/the-basics)!
+Make a cat appear next to your progress bar, jamming along with your music synchronized to the beat!
 
 ## Made with Spicetify Creator
 - https://github.com/spicetify/spicetify-creator

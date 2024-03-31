@@ -1,0 +1,9 @@
+[
+    {
+      "name": "Cat-Jam Synced",
+      "description": "An extension that lets a cat jam in sync with the beat of your music.",
+      "preview": "marketplace/preview.gif",
+      "main": "marketplace/cat-jam.js",
+      "readme": "README.md"
+    }
+]
