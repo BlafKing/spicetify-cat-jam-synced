@@ -82,7 +82,6 @@ async function main() {
     async function fetchAudioData(retryDelay = 200, maxRetries = 10) {
         try {
             audioData = await Spicetify.getAudioData();
-            console.log(audioData);
             return audioData;
         } catch (error) {
             if (typeof error === "object" && error !== null && 'message' in error) {
