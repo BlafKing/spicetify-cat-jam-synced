@@ -1,8 +1,8 @@
 !(async function () {
   for (; !Spicetify.React || !Spicetify.ReactDOM; )
     await new Promise((e) => setTimeout(e, 10));
-  var l, o, d, c, u, m, p, e, t, a, r, i, f, n;
-  (o = Object.create),
+  var l, s, d, c, u, m, p, e, t, a, r, i, f, n;
+  (s = Object.create),
     (d = Object.defineProperty),
     (c = Object.getOwnPropertyDescriptor),
     (u = Object.getOwnPropertyNames),
@@ -19,18 +19,18 @@
       },
     })),
     (r = (t = (e, t, a) => {
-      a = null != e ? o(m(e)) : {};
+      a = null != e ? s(m(e)) : {};
       var i =
           !t && e && e.__esModule
             ? a
             : d(a, "default", { value: e, enumerable: !0 }),
         n = e,
-        s = void 0,
+        o = void 0,
         r = void 0;
       if ((n && "object" == typeof n) || "function" == typeof n)
         for (let e of u(n))
           p.call(i, e) ||
-            e === s ||
+            e === o ||
             d(i, e, {
               get: () => n[e],
               enumerable: !(r = c(n, e)) || r.enumerable,
@@ -113,13 +113,13 @@
               events: { onClick: i, ...n },
             };
           }),
-          (this.addInput = (e, t, a, i, n, s) => {
+          (this.addInput = (e, t, a, i, n, o) => {
             this.settingsFields[e] = {
               type: "input",
               description: t,
               defaultValue: a,
               inputType: n,
-              events: { onChange: i, ...s },
+              events: { onChange: i, ...o },
             };
           }),
           (this.addHidden = (e, t) => {
@@ -133,13 +133,13 @@
               events: { onChange: i, ...n },
             };
           }),
-          (this.addDropDown = (e, t, a, i, n, s) => {
+          (this.addDropDown = (e, t, a, i, n, o) => {
             this.settingsFields[e] = {
               type: "dropdown",
               description: t,
               defaultValue: a[i],
               options: a,
-              events: { onSelect: n, ...s },
+              events: { onSelect: n, ...o },
             };
           }),
           (this.getFieldValue = (e) =>
@@ -182,7 +182,7 @@
             )
               return r.default.createElement(r.default.Fragment, null);
             const [i, n] = (0, r.useState)(t),
-              s = (e) => {
+              o = (e) => {
                 void 0 !== e && (n(e), this.setFieldValue(a.nameId, e));
               };
             return r.default.createElement(
@@ -212,7 +212,7 @@
                       type: a.field.inputType || "text",
                       ...a.field.events,
                       onChange: (e) => {
-                        s(e.currentTarget.value);
+                        o(e.currentTarget.value);
                         var t = a.field.events?.onChange;
                         t && t(e);
                       },
@@ -229,7 +229,7 @@
                             "Button-sc-y0gtbx-0 Button-small-buttonSecondary-useBrowserDefaultFocusStyle x-settings-button",
                           ...a.field.events,
                           onClick: (e) => {
-                            s();
+                            o();
                             var t = a.field.events?.onClick;
                             t && t(e);
                           },
@@ -249,7 +249,7 @@
                         checked: i,
                         ...a.field.events,
                         onClick: (e) => {
-                          s(e.currentTarget.checked);
+                          o(e.currentTarget.checked);
                           var t = a.field.events?.onClick;
                           t && t(e);
                         },
@@ -270,7 +270,7 @@
                         id: e,
                         ...a.field.events,
                         onChange: (e) => {
-                          s(a.field.options[e.currentTarget.selectedIndex]);
+                          o(a.field.options[e.currentTarget.selectedIndex]);
                           var t = a.field.events?.onChange;
                           t && t(e);
                         },
@@ -318,6 +318,12 @@
             ["Bottom (Player)", "Left (Library)"],
             1
           ),
+          f.addDropDown(
+            "catjam-webm-bpm-method",
+            "Method to calculate better BPM",
+            ["Track BPM", "Danceability, Energy and Track BPM"],
+            1
+          ),
           f.addInput(
             "catjam-webm-position-left-size",
             "Size of webM video on the left library (Only works for left library, Default: 100)",
@@ -336,13 +342,13 @@
           Spicetify.Player.addEventListener("onplaypause", async () => {
             var e = performance.now(),
               t = Spicetify.Player.getProgress();
-            s(e, (n = t));
+            o(e, (n = t));
           }),
           0);
       Spicetify.Player.addEventListener("onprogress", async () => {
         var e = performance.now(),
           t = Spicetify.Player.getProgress();
-        500 <= Math.abs(t - n) && s(e, t), (n = t);
+        500 <= Math.abs(t - n) && o(e, t), (n = t);
       }),
         Spicetify.Player.addEventListener("songchange", async () => {
           var e,
@@ -350,39 +356,50 @@
           n = Spicetify.Player.getProgress();
           const a = document.getElementById("catjam-webm");
           a
-            ? (i = await g()) && i.beats && 0 < i.beats.length
-              ? ((e = i.beats[0].start),
-                (a.playbackRate = await y(i)),
-                (t = performance.now() - t),
-                (e = Math.max(0, 1e3 * e - t)),
-                setTimeout(() => {
-                  (a.currentTime = 0), a.play();
-                }, e))
-              : ((a.playbackRate = await y(i)), (a.currentTime = 0), a.play())
+            ? ((i = await g()),
+              console.log("[CAT-JAM] Audio data fetched:", i),
+              i && i.beats && 0 < i.beats.length
+                ? ((e = i.beats[0].start),
+                  (a.playbackRate = await y(i)),
+                  (t = performance.now() - t),
+                  (e = Math.max(0, 1e3 * e - t)),
+                  setTimeout(() => {
+                    (a.currentTime = 0), a.play();
+                  }, e))
+                : ((a.playbackRate = await y(i)),
+                  (a.currentTime = 0),
+                  a.play()))
             : console.error("[CAT-JAM] Video element not found.");
         });
     }),
     (async () => {
       await n();
     })();
-  async function y(e) {
-    let t = Number(f.getFieldValue("catjam-webm-bpm"));
-    var a;
+  async function y(a) {
+    let i = Number(f.getFieldValue("catjam-webm-bpm"));
+    if ((console.log(i), (i = i || 135.48), a && null != a && a.track)) {
+      a = null == (a = null == a ? void 0 : a.track) ? void 0 : a.tempo;
+      let e = a,
+        t =
+          ("Track BPM" !== f.getFieldValue("catjam-webm-bpm-method") &&
+            (console.log(
+              "[CAT-JAM] Using danceability, energy and track BPM to calculate better BPM"
+            ),
+            (e = await b(a)),
+            console.log("[CAT-JAM] Better BPM:", e)),
+          1);
+      return (
+        e && (t = e / i),
+        console.log("[CAT-JAM] Track BPM:", a),
+        console.log("[CAT-JAM] Cat jam synchronized, playback rate set to:", t),
+        t
+      );
+    }
     return (
-      console.log(t),
-      (t = t || 135.48),
-      e && e.track.tempo
-        ? ((a = (e = e.track.tempo) / t),
-          console.log("[CAT-JAM] Track BPM:", e),
-          console.log(
-            "[CAT-JAM] Cat jam synchronized, playback rate set to:",
-            a
-          ),
-          a)
-        : (console.warn(
-            "[CAT-JAM] BPM data not available for this track, cat will not be jamming accurately :("
-          ),
-          1)
+      console.warn(
+        "[CAT-JAM] BPM data not available for this track, cat will not be jamming accurately :("
+      ),
+      1
     );
   }
   async function g(t = 200, a = 10) {
@@ -400,7 +417,7 @@
       return null;
     }
   }
-  async function s(e, t) {
+  async function o(e, t) {
     const a = document.getElementById("catjam-webm");
     var i;
     a
@@ -426,7 +443,7 @@
       var a = `width: ${e}%; max-width: 300px; height: auto; max-height: 100%; position: absolute; bottom: 0; pointer-events: none; z-index: 1;`,
         i = f.getFieldValue("catjam-webm-position"),
         n = "Bottom (Player)" === i ? "width: 65px; height: 65px;" : a,
-        s = await (async function (e, t = 50, a = 100) {
+        o = await (async function (e, t = 50, a = 100) {
           let i = 0;
           for (; i < t; ) {
             var n = document.querySelector(e);
@@ -445,19 +462,69 @@
       t =
         t ||
         "https://github.com/BlafKing/spicetify-cat-jam-synced/raw/main/src/resources/catjam.webm";
-      var o = document.createElement("video");
-      o.setAttribute("loop", "true"),
-        o.setAttribute("autoplay", "true"),
-        o.setAttribute("muted", "true"),
-        o.setAttribute("style", n),
-        (o.src = t),
-        (o.id = "catjam-webm"),
+      var s = document.createElement("video");
+      s.setAttribute("loop", "true"),
+        s.setAttribute("autoplay", "true"),
+        s.setAttribute("muted", "true"),
+        s.setAttribute("style", n),
+        (s.src = t),
+        (s.id = "catjam-webm"),
         (l = await g()),
-        (o.playbackRate = await y(l)),
-        s.firstChild ? s.insertBefore(o, s.firstChild) : s.appendChild(o),
-        Spicetify.Player.isPlaying() ? o.play() : o.pause();
+        (s.playbackRate = await y(l)),
+        o.firstChild ? o.insertBefore(s, o.firstChild) : o.appendChild(s),
+        Spicetify.Player.isPlaying() ? s.play() : s.pause();
     } catch (e) {
       console.error("[CAT-JAM] Could not create cat-jam video element: ", e);
+    }
+  }
+  async function b(e) {
+    var t, a;
+    let i = e;
+    try {
+      var n,
+        o,
+        r,
+        s,
+        l =
+          null == (a = null == (t = Spicetify.Player.data) ? void 0 : t.item)
+            ? void 0
+            : a.uri;
+      l
+        ? ((n = l.split(":")[2]),
+          (o = await Spicetify.CosmosAsync.get(
+            "https://api.spotify.com/v1/audio-features/" + n
+          )),
+          (r = Math.round(100 * o.danceability)),
+          (s = Math.round(100 * o.energy)),
+          (i = (function (e, t, a) {
+            let i = 0.9,
+              n = 0.6,
+              o = 0.6;
+            var r = a / 100,
+              e = e / 100,
+              t = t / 100;
+            e < 0.5 && (i *= e);
+            t < 0.5 && (n *= t);
+            r < 0.8 && (o = 0.9);
+            e = (e * i + t * n + r * o) / (1 - i + 1 - n + o);
+            let s = 100 * e;
+            console.log({
+              danceabilityWeight: i,
+              energyWeight: n,
+              currentBPM: a,
+              weightedAverage: e,
+              betterBPM: s,
+              bpmWeight: o,
+            }),
+              s > a && (s = (s + a) / 2);
+            s < a && (s = Math.max(s, 70));
+            return s;
+          })(r, s, e)))
+        : setTimeout(b, 200);
+    } catch (e) {
+      console.error("[CAT-JAM] Could not get audio features: ", e);
+    } finally {
+      return i;
     }
   }
 })();

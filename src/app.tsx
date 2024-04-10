@@ -21,7 +21,7 @@ async function getPlaybackRate(audioData) {
         }
         let playbackRate = 1;
         if (bpmToUse) {
-            playbackRate = trackBPM / videoDefaultBPM;
+            playbackRate = bpmToUse / videoDefaultBPM;
         }
         console.log("[CAT-JAM] Track BPM:", trackBPM)
         console.log("[CAT-JAM] Cat jam synchronized, playback rate set to:", playbackRate)
@@ -183,17 +183,19 @@ async function getBetterBPM(currentBPM) {
 
 // Function to calculate a better BPM based on danceability and energy
 function calculateBetterBPM(danceability, energy, currentBPM) {
-    let danceabilityWeight = 0.8;
-    let energyWeight = 0.9;
-    let bpmWeight = 0.7;
+    let danceabilityWeight = 0.9;
+    let energyWeight = 0.6;
+    let bpmWeight = 0.6;
     const energyTreshold = 0.5;
+    let danceabilityTreshold = 0.5;
     const maxBPM = 100;
+    let bpmThreshold = 0.8; // 80 bpm
 
-    const normalizedBPM = currentBPM / maxBPM;
+    const normalizedBPM = currentBPM / 100;
     const normalizedDanceability = danceability / 100;
     const normalizedEnergy = energy / 100;
 
-    if (normalizedDanceability < energyTreshold){
+    if (normalizedDanceability < danceabilityTreshold){
         danceabilityWeight *= normalizedDanceability;
     }
 
@@ -201,15 +203,21 @@ function calculateBetterBPM(danceability, energy, currentBPM) {
         energyWeight *= normalizedEnergy;
     }
     // increase bpm weight if the song is slow
-    if (normalizedBPM < bpmWeight){
+    if (normalizedBPM < bpmThreshold){
         bpmWeight = 0.9;
     }
 
     const weightedAverage = (normalizedDanceability * danceabilityWeight + normalizedEnergy * energyWeight + normalizedBPM * bpmWeight) / (1 - danceabilityWeight + 1 - energyWeight + bpmWeight);
     let betterBPM = weightedAverage * maxBPM;
 
+    console.log({danceabilityWeight, energyWeight, currentBPM, weightedAverage, betterBPM, bpmWeight})
+
     if (betterBPM > currentBPM) {
-        betterBPM = Math.min(betterBPM, currentBPM * 1.1);
+        betterBPM = (betterBPM + currentBPM) / 2;
+    }
+
+    if (betterBPM < currentBPM) {
+        betterBPM = Math.max(betterBPM, 70);
     }
 
     return betterBPM;
@@ -228,8 +236,8 @@ async function main() {
     settings.addInput("catjam-webm-link", "Custom webM video URL (Link does not work if no video shows)", "");
     settings.addInput("catjam-webm-bpm", "Custom default BPM of webM video (Example: 135.48)", "");
     settings.addDropDown("catjam-webm-position", "Position where webM video should be rendered", ['Bottom (Player)', 'Left (Library)'], 1);
-    settings.addInput("catjam-webm-position-left-size", "Size of webM video on the left library (Only works for left library, Default: 100)", "");
     settings.addDropDown("catjam-webm-bpm-method", "Method to calculate better BPM", ['Track BPM', 'Danceability, Energy and Track BPM'], 1);
+    settings.addInput("catjam-webm-position-left-size", "Size of webM video on the left library (Only works for left library, Default: 100)", "");
     settings.addButton("catjam-reload", "Reload custom values", "Save and reload", () => {createWebMVideo();});
     settings.pushSettings();
 
