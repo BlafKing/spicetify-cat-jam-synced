@@ -320,7 +320,13 @@
           ),
           f.addDropDown(
             "catjam-webm-bpm-method",
-            "Method to calculate better BPM",
+            "Method to calculate better BPM for slower songs",
+            ["Track BPM", "Danceability, Energy and Track BPM"],
+            1
+          ),
+          f.addDropDown(
+            "catjam-webm-bpm-method-faster-songs",
+            "Method to calculate better BPM for faster songs",
             ["Track BPM", "Danceability, Energy and Track BPM"],
             1
           ),
@@ -515,8 +521,11 @@
               weightedAverage: e,
               betterBPM: s,
               bpmWeight: o,
-            }),
-              s > a && (s = (s + a) / 2);
+            });
+            t =
+              "Track BPM" !==
+              f.getFieldValue("catjam-webm-bpm-method-faster-songs");
+            s > a && (s = t ? (s + a) / 2 : a);
             s < a && (s = Math.max(s, 70));
             return s;
           })(r, s, e)))
