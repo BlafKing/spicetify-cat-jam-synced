@@ -6,6 +6,12 @@ Make a cat appear next to your progress bar, jamming along with your music synch
 
 # Changelog 📋
 
+<h3>v1.2.5</h3>
+
+- Added better BPM calculation for songs based on songs danceability and energy.
+- Can be toggled from the settings.
+- Fixed minor bugs.
+
 <h3>v1.2.0</h3>
 
 - Added ability to position and resize webM video to the left library.
