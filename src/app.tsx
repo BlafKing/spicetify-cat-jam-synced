@@ -12,8 +12,15 @@ async function getPlaybackRate(audioData) {
 
     if (audioData && audioData.track.tempo) {
         let trackBPM = audioData.track.tempo; // BPM of the current track
-        const playbackRate = trackBPM / videoDefaultBPM; // Calculate playback rate
+        let bpmMethod = settings.getFieldValue("catjam-webm-bpm-method");
+        let bpmToUse = trackBPM;
+        if (bpmMethod !== "Track BPM") {
+            console.log("[CAT-JAM] Using danceability, energy and track BPM to calculate better BPM");
+            bpmToUse = await getBetterBPM(trackBPM);
+            console.log("[CAT-JAM] Better BPM:", bpmToUse)
+        }
 
+        const playbackRate = bpmToUse / videoDefaultBPM; // Calculate the playback rate based on the track's BPM
         console.log("[CAT-JAM] Track BPM:", trackBPM)
         console.log("[CAT-JAM] Cat jam synchronized, playback rate set to:", playbackRate)
 
@@ -152,6 +159,60 @@ async function createWebMVideo() {
     }
 }
 
+async function getBetterBPM(currentBPM) {
+    let betterBPM = currentBPM
+    try {
+        const currentSongDataUri = Spicetify.Player.data?.item?.uri;
+        if (!currentSongDataUri) {
+            setTimeout(getBetterBPM, 200);
+            return;
+        }
+        const uriFinal = currentSongDataUri.split(":")[2];
+        const res = await Spicetify.CosmosAsync.get("https://api.spotify.com/v1/audio-features/" + uriFinal);
+        const danceability = Math.round(100 * res.danceability);
+        const energy = Math.round(100 * res.energy);
+        betterBPM = calculateBetterBPM(danceability, energy, currentBPM)
+    } catch (error) {
+        console.error("[CAT-JAM] Could not get audio features: ", error);
+    } finally {
+        return betterBPM;
+    }
+}
+
+// Function to calculate a better BPM based on danceability and energy
+function calculateBetterBPM(danceability, energy, currentBPM) {
+    let danceabilityWeight = 0.8;
+    let energyWeight = 0.9;
+    let bpmWeight = 0.7;
+    const energyTreshold = 0.5;
+    const maxBPM = 100;
+
+    const normalizedBPM = currentBPM / maxBPM;
+    const normalizedDanceability = danceability / 100;
+    const normalizedEnergy = energy / 100;
+
+    if (normalizedDanceability < energyTreshold){
+        danceabilityWeight *= normalizedDanceability;
+    }
+
+    if (normalizedEnergy < energyTreshold){
+        energyWeight *= normalizedEnergy;
+    }
+    // increase bpm weight if the song is slow
+    if (normalizedBPM < bpmWeight){
+        bpmWeight = 0.9;
+    }
+
+    const weightedAverage = (normalizedDanceability * danceabilityWeight + normalizedEnergy * energyWeight + normalizedBPM * bpmWeight) / (1 - danceabilityWeight + 1 - energyWeight + bpmWeight);
+    let betterBPM = weightedAverage * maxBPM;
+
+    if (betterBPM > currentBPM) {
+        betterBPM = Math.min(betterBPM, currentBPM * 1.1);
+    }
+
+    return betterBPM;
+}
+
 // Main function to initialize and manage the Spicetify app extension
 async function main() {
     // Continuously check until the Spicetify Player and audio data APIs are available
@@ -166,6 +227,7 @@ async function main() {
     settings.addInput("catjam-webm-bpm", "Custom default BPM of webM video (Example: 135.48)", "");
     settings.addDropDown("catjam-webm-position", "Position where webM video should be rendered", ['Bottom (Player)', 'Left (Library)'], 1);
     settings.addInput("catjam-webm-position-left-size", "Size of webM video on the left library (Only works for left library, Default: 100)", "");
+    settings.addDropDown("catjam-webm-bpm-method", "Method to calculate better BPM", ['Track BPM', 'Danceability, Energy and Track BPM'], 1);
     settings.addButton("catjam-reload", "Reload custom values", "Save and reload", () => {createWebMVideo();});
     settings.pushSettings();
 
@@ -198,6 +260,7 @@ async function main() {
         const videoElement = document.getElementById('catjam-webm')as HTMLVideoElement;
         if (videoElement) {
             audioData = await fetchAudioData(); // Fetch current audio data
+            console.log("[CAT-JAM] Audio data fetched:", audioData);
             if (audioData && audioData.beats && audioData.beats.length > 0) {
                 const firstBeatStart = audioData.beats[0].start; // Get start time of the first beat
                 
