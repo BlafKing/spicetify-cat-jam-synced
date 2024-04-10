@@ -10,8 +10,8 @@ async function getPlaybackRate(audioData) {
         videoDefaultBPM = 135.48;
     }
 
-    if (audioData && audioData.track.tempo) {
-        let trackBPM = audioData.track.tempo; // BPM of the current track
+    if (audioData && audioData?.track) {
+        let trackBPM = audioData?.track?.tempo  // BPM of the current track
         let bpmMethod = settings.getFieldValue("catjam-webm-bpm-method");
         let bpmToUse = trackBPM;
         if (bpmMethod !== "Track BPM") {
@@ -19,8 +19,10 @@ async function getPlaybackRate(audioData) {
             bpmToUse = await getBetterBPM(trackBPM);
             console.log("[CAT-JAM] Better BPM:", bpmToUse)
         }
-
-        const playbackRate = bpmToUse / videoDefaultBPM; // Calculate the playback rate based on the track's BPM
+        let playbackRate = 1;
+        if (bpmToUse) {
+            playbackRate = trackBPM / videoDefaultBPM;
+        }
         console.log("[CAT-JAM] Track BPM:", trackBPM)
         console.log("[CAT-JAM] Cat jam synchronized, playback rate set to:", playbackRate)
 
