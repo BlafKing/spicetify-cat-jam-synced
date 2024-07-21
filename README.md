@@ -4,6 +4,8 @@
 
 Make a cat appear next to your progress bar, jamming along with your music synchronized to the beat!
 
+**location of settings:** at the bottom of the regular Spotify settings.
+
 # Changelog 📋
 
 <h3>v1.2.5</h3>
