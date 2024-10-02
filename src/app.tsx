@@ -240,9 +240,9 @@ async function main() {
     // Create Settings UI
     settings.addInput("catjam-webm-link", "Custom webM video URL (Link does not work if no video shows)", "");
     settings.addInput("catjam-webm-bpm", "Custom default BPM of webM video (Example: 135.48)", "");
-    settings.addDropDown("catjam-webm-position", "Position where webM video should be rendered", ['Bottom (Player)', 'Left (Library)'], 1);
-    settings.addDropDown("catjam-webm-bpm-method", "Method to calculate better BPM for slower songs", ['Track BPM', 'Danceability, Energy and Track BPM'], 1);
-    settings.addDropDown("catjam-webm-bpm-method-faster-songs", "Method to calculate better BPM for faster songs", ['Track BPM', 'Danceability, Energy and Track BPM'], 1);
+    settings.addDropDown("catjam-webm-position", "Position where webM video should be rendered", ['Bottom (Player)', 'Left (Library)'], 0);
+    settings.addDropDown("catjam-webm-bpm-method", "Method to calculate better BPM for slower songs", ['Track BPM', 'Danceability, Energy and Track BPM'], 0);
+    settings.addDropDown("catjam-webm-bpm-method-faster-songs", "Method to calculate better BPM for faster songs", ['Track BPM', 'Danceability, Energy and Track BPM'], 0);
     settings.addInput("catjam-webm-position-left-size", "Size of webM video on the left library (Only works for left library, Default: 100)", "");
     settings.addButton("catjam-reload", "Reload custom values", "Save and reload", () => {createWebMVideo();});
     settings.pushSettings();
