@@ -108,16 +108,36 @@ async function createWebMVideo() {
     try {
         const bottomPlayerClass = '.main-nowPlayingBar-right' // Selector for the bottom player
         const leftLibraryClass = '.main-yourLibraryX-libraryItemContainer' // Selector for the left library
+        const mainViewClass = '.main-view-container' // Selector for the main view
+
         let leftLibraryVideoSize = Number(settings.getFieldValue("catjam-webm-position-left-size")); // Get the left library video size
         if (!leftLibraryVideoSize) {
             leftLibraryVideoSize = 100; // Default size of the video on the left library
         }
+        let mainViewVideoSize = Number(settings.getFieldValue("catjam-webm-position-middle-size")); // Get the main view video size
+        if (!mainViewVideoSize) {
+            mainViewVideoSize = 30; // Default size of the video on the main view
+        }
+
         const bottomPlayerStyle = 'width: 65px; height: 65px;'; // Style for the bottom player video
         let leftLibraryStyle = `width: ${leftLibraryVideoSize}%; max-width: 300px; height: auto; max-height: 100%; position: absolute; bottom: 0; pointer-events: none; z-index: 1;` // Style for the left library video
+        let mainViewStyle = `height: ${mainViewVideoSize}%; max-height: 100%; position: absolute; bottom: 0; pointer-events: none; z-index: 1; align-self: flex-start; margin: 0;` // Style for the main view video
+
         let selectedPosition = settings.getFieldValue("catjam-webm-position"); // Get the selected position for the video
 
-        let targetElementSelector = selectedPosition === 'Bottom (Player)' ? bottomPlayerClass : leftLibraryClass;
-        let elementStyles = selectedPosition === 'Bottom (Player)' ? bottomPlayerStyle : leftLibraryStyle;
+        let {targetElementSelector, elementStyles} = (() => {
+            switch (selectedPosition) {
+                case 'Bottom (Player)':
+                    return { targetElementSelector: bottomPlayerClass, elementStyles: bottomPlayerStyle };
+                case 'Left (Library)':
+                    return { targetElementSelector: leftLibraryClass, elementStyles: leftLibraryStyle };
+                case 'Middle (Main Window)':
+                    return { targetElementSelector: mainViewClass, elementStyles: mainViewStyle };
+                default:
+                    return { targetElementSelector: bottomPlayerClass, elementStyles: bottomPlayerStyle };
+            }
+        })();
+
         const targetElement = await waitForElement(targetElementSelector); // Wait until the target element is available
 
         // Remove any existing video element to avoid duplicates
@@ -240,10 +260,11 @@ async function main() {
     // Create Settings UI
     settings.addInput("catjam-webm-link", "Custom webM video URL (Link does not work if no video shows)", "");
     settings.addInput("catjam-webm-bpm", "Custom default BPM of webM video (Example: 135.48)", "");
-    settings.addDropDown("catjam-webm-position", "Position where webM video should be rendered", ['Bottom (Player)', 'Left (Library)'], 0);
+    settings.addDropDown("catjam-webm-position", "Position where webM video should be rendered", ['Bottom (Player)', 'Left (Library)', 'Middle (Main Window)'], 0);
     settings.addDropDown("catjam-webm-bpm-method", "Method to calculate better BPM for slower songs", ['Track BPM', 'Danceability, Energy and Track BPM'], 0);
     settings.addDropDown("catjam-webm-bpm-method-faster-songs", "Method to calculate better BPM for faster songs", ['Track BPM', 'Danceability, Energy and Track BPM'], 0);
     settings.addInput("catjam-webm-position-left-size", "Size of webM video on the left library (Only works for left library, Default: 100)", "");
+    settings.addInput("catjam-webm-position-middle-size", "Size of webM video on the main view (Only works for main view, Default: 30)", "");
     settings.addButton("catjam-reload", "Reload custom values", "Save and reload", () => {createWebMVideo();});
     settings.pushSettings();
 
