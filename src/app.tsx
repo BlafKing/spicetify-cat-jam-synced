@@ -19,9 +19,20 @@ async function getPlaybackRate(audioData) {
             bpmToUse = await getBetterBPM(trackBPM);
             console.log("[CAT-JAM] Better BPM:", bpmToUse)
         }
+
+        let maxRate = Number(settings.getFieldValue("catjam-webm-max-rate"));
+
         let playbackRate = 1;
         if (bpmToUse) {
             playbackRate = bpmToUse / videoDefaultBPM;
+
+            if (maxRate && maxRate > 0 && playbackRate > maxRate) {
+                console.log(`[CAT-JAM] Playback rate (${playbackRate}) exceeded max rate (${maxRate}). Performed adjustment.`)
+
+                while (playbackRate > maxRate) {
+                    playbackRate /= 2;
+                }
+            }
         }
         console.log("[CAT-JAM] Track BPM:", trackBPM)
         console.log("[CAT-JAM] Cat jam synchronized, playback rate set to:", playbackRate)
@@ -244,6 +255,7 @@ async function main() {
     settings.addDropDown("catjam-webm-bpm-method", "Method to calculate better BPM for slower songs", ['Track BPM', 'Danceability, Energy and Track BPM'], 0);
     settings.addDropDown("catjam-webm-bpm-method-faster-songs", "Method to calculate better BPM for faster songs", ['Track BPM', 'Danceability, Energy and Track BPM'], 0);
     settings.addInput("catjam-webm-position-left-size", "Size of webM video on the left library (Only works for left library, Default: 100)", "");
+    settings.addInput("catjam-webm-max-rate", "Maximum playback rate (Empty for no limit. Example: 1 for CatJam to never speed up)", "", undefined, "Number");
     settings.addButton("catjam-reload", "Reload custom values", "Save and reload", () => {createWebMVideo();});
     settings.pushSettings();
 
