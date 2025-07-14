@@ -207,7 +207,7 @@ function calculateBetterBPM(danceability, energy, currentBPM) {
         bpmWeight = 0.9;
     }
 
-    const weightedAverage = (normalizedDanceability * danceabilityWeight + normalizedEnergy * energyWeight + normalizedBPM * bpmWeight) / (1 - danceabilityWeight + 1 - energyWeight + bpmWeight);
+    const weightedAverage = (normalizedDanceability * danceabilityWeight + normalizedEnergy * energyWeight + normalizedBPM * bpmWeight) / (2 - danceabilityWeight - energyWeight + bpmWeight);
     let betterBPM = weightedAverage * maxBPM;
 
     console.log({danceabilityWeight, energyWeight, currentBPM, weightedAverage, betterBPM, bpmWeight})
