@@ -107,7 +107,7 @@ async function waitForElement(selector, maxAttempts = 50, interval = 100) {
 async function createWebMVideo() {
     try {
         const bottomPlayerClass = '.main-nowPlayingBar-right' // Selector for the bottom player
-        const leftLibraryClass = '.main-yourLibraryX-libraryItemContainer' // Selector for the left library
+        const leftLibraryClass = '.main-yourLibraryX-libraryContainer' // Selector for the left library
         let leftLibraryVideoSize = Number(settings.getFieldValue("catjam-webm-position-left-size")); // Get the left library video size
         if (!leftLibraryVideoSize) {
             leftLibraryVideoSize = 100; // Default size of the video on the left library
