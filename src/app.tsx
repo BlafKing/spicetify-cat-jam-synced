@@ -1,6 +1,104 @@
 import { SettingsSection } from "spcr-settings";
 const settings = new SettingsSection("Cat-Jam Settings", "catjam-settings");
 let audioData;
+const audioDataCacheKey = "catjam-audio-data-cache";
+const deezerMisses = new Map();
+let didLogAudioFeaturesFailure = false;
+
+function withTimeout(promise, timeout = 4000) {
+    let timeoutId;
+    const timeoutPromise = new Promise((_, reject) => {
+        timeoutId = setTimeout(() => reject(new Error("Request timed out")), timeout);
+    });
+    return Promise.race([promise, timeoutPromise]).finally(() => clearTimeout(timeoutId));
+}
+
+function normalizeForMatch(value) {
+    return String(value || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+function cleanTitle(title) {
+    return String(title || "").replace(/\s*[\[(].*?[\])]/g, "").replace(/\s+(feat\.?|ft\.?|with)\s+.*/i, "").trim();
+}
+
+function getTrackId() {
+    const item = Spicetify.Player.data?.item;
+    return item?.id || item?.uri?.split(":").pop();
+}
+
+function getCachedAudioData(trackId) {
+    try {
+        return JSON.parse(localStorage.getItem(audioDataCacheKey) || "{}")[trackId] || null;
+    } catch (error) {
+        return null;
+    }
+}
+
+function cacheAudioData(trackId, data) {
+    try {
+        const cache = JSON.parse(localStorage.getItem(audioDataCacheKey) || "{}");
+        cache[trackId] = data;
+        while (Object.keys(cache).length > 100) {
+            delete cache[Object.keys(cache)[0]];
+        }
+        localStorage.setItem(audioDataCacheKey, JSON.stringify(cache));
+    } catch (error) {
+        // Ignore unavailable or full localStorage.
+    }
+}
+
+async function getDeezerAudioData() {
+    const item = Spicetify.Player.data?.item;
+    const metadata = item?.metadata || {};
+    const artist = metadata.artist_name || metadata.artist || item?.artists?.[0]?.name || "";
+    const title = cleanTitle(metadata.title || item?.name || "");
+    let deezerTrack;
+
+    if (metadata.isrc) {
+        try {
+            const isrcTrack = await withTimeout(Spicetify.CosmosAsync.get("https://api.deezer.com/track/isrc:" + encodeURIComponent(metadata.isrc)));
+            if (isrcTrack?.id) {
+                deezerTrack = isrcTrack;
+            }
+        } catch (error) {
+            // ISRC not on Deezer or lookup failed; fall through to title search.
+        }
+    }
+    if (!deezerTrack) {
+        if (!artist || !title) {
+            return null;
+        }
+        const findTrack = (results) => results?.data?.find(track => {
+            const deezerTitle = normalizeForMatch(track.title);
+            const deezerArtist = normalizeForMatch(track.artist?.name);
+            const cleanDeezerTitle = normalizeForMatch(cleanTitle(track.title));
+            const normalizedTitle = normalizeForMatch(title);
+            const normalizedArtist = normalizeForMatch(artist);
+            if (!normalizedTitle || !normalizedArtist || !cleanDeezerTitle || !deezerArtist) {
+                return false;
+            }
+            return (deezerTitle.includes(normalizedTitle) || normalizedTitle.includes(cleanDeezerTitle)) &&
+                (deezerArtist.includes(normalizedArtist) || normalizedArtist.includes(deezerArtist));
+        });
+        const fieldedQuery = `artist:"${artist}" track:"${title}"`;
+        let results = await withTimeout(Spicetify.CosmosAsync.get("https://api.deezer.com/search?q=" + encodeURIComponent(fieldedQuery)));
+        deezerTrack = findTrack(results);
+        if (!deezerTrack) {
+            results = await withTimeout(Spicetify.CosmosAsync.get("https://api.deezer.com/search?q=" + encodeURIComponent(`${artist} ${title}`)));
+            deezerTrack = findTrack(results);
+        }
+    }
+
+    if (!deezerTrack?.id) {
+        return null;
+    }
+    const details = await withTimeout(Spicetify.CosmosAsync.get("https://api.deezer.com/track/" + deezerTrack.id));
+    if (!details?.bpm || details.bpm <= 0) {
+        return null;
+    }
+    const duration = Number(details.duration) * 1000;
+    return { track: { tempo: details.bpm, duration_ms: duration || item?.duration?.milliseconds, gain: details.gain } };
+}
 
 // Function to adjust the video playback rate based on the current track's BPM
 async function getPlaybackRate(audioData) {
@@ -13,6 +111,10 @@ async function getPlaybackRate(audioData) {
     if (audioData && audioData?.track) {
         let trackBPM = audioData?.track?.tempo  // BPM of the current track
         let bpmMethod = settings.getFieldValue("catjam-webm-bpm-method");
+        // Deezer can report double-time for quiet, sparse tracks; use the felt pulse instead.
+        if (trackBPM >= 110 && audioData?.track?.gain < -12) {
+            trackBPM /= 2;
+        }
         let bpmToUse = trackBPM;
         if (bpmMethod !== "Track BPM") {
             console.log("[CAT-JAM] Using danceability, energy and track BPM to calculate better BPM");
@@ -33,25 +135,40 @@ async function getPlaybackRate(audioData) {
     }
 }
 
-// Function that fetches audio data from "wg://audio-attributes/v1/audio-analysis/" with retry handling
-async function fetchAudioData(retryDelay = 200, maxRetries = 10) {
+// Function that fetches audio data from Spotify, then Deezer when audio analysis is unavailable
+async function fetchAudioData() {
+    const trackId = getTrackId();
     try {
-        let audioData = await Spicetify.getAudioData();
-        return audioData;
-    } catch (error) {
-        if (typeof error === "object" && error !== null && 'message' in error) {
-            const message = error.message;
-            
-            if (message.includes("Cannot read properties of undefined") && maxRetries > 0) {
-                console.log("[CAT-JAM] Retrying to fetch audio data...");
-                await new Promise(resolve => setTimeout(resolve, retryDelay));
-                return fetchAudioData(retryDelay, maxRetries - 1); // Retry fetching audio data
+        if (Spicetify.getAudioData) {
+            const spotifyAudioData = await withTimeout(Spicetify.getAudioData());
+            if (spotifyAudioData) {
+                return spotifyAudioData;
             }
-        } else {
-            console.warn(`[CAT-JAM] Error fetching audio data: ${error}`);
         }
-        return null; // Return default playback rate on failure
+    } catch (error) {
+        // Spotify's audio-analysis endpoint is currently unavailable; try Deezer below.
     }
+    if (!trackId) {
+        return null;
+    }
+    const cachedAudioData = getCachedAudioData(trackId);
+    if (cachedAudioData) {
+        return cachedAudioData;
+    }
+    if (deezerMisses.has(trackId)) {
+        return null;
+    }
+    try {
+        const deezerAudioData = await getDeezerAudioData();
+        if (deezerAudioData) {
+            cacheAudioData(trackId, deezerAudioData);
+            return deezerAudioData;
+        }
+    } catch (error) {
+        console.debug("[CAT-JAM] Deezer BPM lookup failed:", error);
+    }
+    deezerMisses.set(trackId, true);
+    return null;
 }
 
 // Function to synchronize video playback timing with the music's beats
@@ -166,16 +283,18 @@ async function getBetterBPM(currentBPM) {
     try {
         const currentSongDataUri = Spicetify.Player.data?.item?.uri;
         if (!currentSongDataUri) {
-            setTimeout(getBetterBPM, 200);
-            return;
+            return currentBPM;
         }
         const uriFinal = currentSongDataUri.split(":")[2];
-        const res = await Spicetify.CosmosAsync.get("https://api.spotify.com/v1/audio-features/" + uriFinal);
+        const res = await withTimeout(Spicetify.CosmosAsync.get("https://api.spotify.com/v1/audio-features/" + uriFinal));
         const danceability = Math.round(100 * res.danceability);
         const energy = Math.round(100 * res.energy);
         betterBPM = calculateBetterBPM(danceability, energy, currentBPM)
     } catch (error) {
-        console.error("[CAT-JAM] Could not get audio features: ", error);
+        if (!didLogAudioFeaturesFailure) {
+            console.debug("[CAT-JAM] Could not get audio features; using track BPM:", error);
+            didLogAudioFeaturesFailure = true;
+        }
     } finally {
         return betterBPM;
     }
@@ -231,12 +350,10 @@ function calculateBetterBPM(danceability, energy, currentBPM) {
 // Main function to initialize and manage the Spicetify app extension
 async function main() {
     // Continuously check until the Spicetify Player and audio data APIs are available
-    while (!Spicetify?.Player?.addEventListener || !Spicetify?.getAudioData) {
+    while (!Spicetify?.Player?.addEventListener) {
         await new Promise(resolve => setTimeout(resolve, 100)); // Wait for 100ms before checking again
     }
     console.log("[CAT-JAM] Extension loaded.");
-    let audioData; // Initialize audio data variable
-
     // Create Settings UI
     settings.addInput("catjam-webm-link", "Custom webM video URL (Link does not work if no video shows)", "");
     settings.addInput("catjam-webm-bpm", "Custom default BPM of webM video (Example: 135.48)", "");
@@ -272,8 +389,13 @@ async function main() {
     Spicetify.Player.addEventListener("songchange", async () => {
         const startTime = performance.now(); // Record the start time for the operation
         lastProgress = Spicetify.Player.getProgress();
+        audioData = null; // Never reuse a previous song's tempo during player-bar re-renders.
 
-        const videoElement = document.getElementById('catjam-webm')as HTMLVideoElement;
+        let videoElement = document.getElementById('catjam-webm')as HTMLVideoElement;
+        if (!videoElement) {
+            await createWebMVideo();
+            videoElement = document.getElementById('catjam-webm')as HTMLVideoElement;
+        }
         if (videoElement) {
             audioData = await fetchAudioData(); // Fetch current audio data
             console.log("[CAT-JAM] Audio data fetched:", audioData);
