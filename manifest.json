@@ -4,6 +4,11 @@
       "description": "An extension that lets a cat jam in sync with the beat of your music.",
       "preview": "marketplace/preview.gif",
       "main": "marketplace/cat-jam.js",
-      "readme": "README.md"
+      "readme": "README.md",
+      "authors": [
+        { "name": "BlafKing", "url": "https://github.com/BlafKing" },
+        { "name": "caml07", "url": "https://github.com/caml07" }
+      ],
+      "tags": ["cat", "fun"]
     }
 ]

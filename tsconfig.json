@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
     "target": "ES2017",
+    "lib": ["ES2021", "DOM", "DOM.Iterable"],
     "jsx": "react",
     "module": "commonjs",
     "resolveJsonModule": true,
